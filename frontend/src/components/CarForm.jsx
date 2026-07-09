@@ -20,6 +20,7 @@ export default function CarForm({ token, car, onSaved }) {
     price: car?.price || '',
     is_used: car?.is_used ?? true,
     km: car?.km || '',
+    is_electric: car?.is_electric ?? false,
     description: car?.description || '',
     province_id: car?.province_id || '',
     municipality_id: car?.municipality_id || '',
@@ -79,8 +80,10 @@ export default function CarForm({ token, car, onSaved }) {
     let carId = car?.id
     const payload = {
       ...form,
+      price: Number(form.price),
       is_used: form.is_used === 'true' || form.is_used === true,
       km: (form.is_used === true || form.is_used === 'true') ? form.km : null,
+      is_electric: form.is_electric,
       is_active: true,
     }
     if (isEdit) {
@@ -149,6 +152,18 @@ export default function CarForm({ token, car, onSaved }) {
               <option value={true}>Usado</option>
               <option value={false}>Nuevo</option>
             </select>
+          </div>
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <input
+            type="checkbox"
+            id="is_electric"
+            checked={form.is_electric}
+            onChange={e => set('is_electric', e.target.checked)}
+            className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+          />
+             <label htmlFor="is_electric" className="text-sm text-slate-600 cursor-pointer">
+               Es un vehículo eléctrico
+             </label>
           </div>
           {(form.is_used === true || form.is_used === 'true') && (
             <div>

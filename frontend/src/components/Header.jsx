@@ -58,7 +58,7 @@ export default function Header({ onSearch, filters, mode = 'sale' }) {
   }
 
   const handleReset = () => {
-    const empty = { q: '', brand_id: '', is_used: '', min_price: '', max_price: '', province_id: '', municipality_id: '' }
+    const empty = { q: '', brand_id: '', is_used: '', min_price: '', max_price: '', province_id: '', municipality_id: '', electric: ''}
     setLocal(empty)
     setMunicipalities([])
     onSearch(empty)
@@ -165,7 +165,12 @@ export default function Header({ onSearch, filters, mode = 'sale' }) {
                 <option value="false">Nuevo</option>
                 <option value="true">Usado</option>
               </select>
-
+              <select value={local.electric} onChange={e => set('electric', e.target.value)}
+              className={selectClass}>
+              <option value="">Combustión y eléctrico</option>
+              <option value="true">Solo eléctricos</option>
+              <option value="false">Solo combustión</option>
+             </select>
               <div className="grid grid-cols-2 gap-2 sm:contents">
                 <input type="number" placeholder="Precio mín." value={local.min_price}
                   onChange={e => set('min_price', e.target.value)} className={selectClass} />

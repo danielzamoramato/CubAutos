@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Header from '../components/Header'
 import CarGrid from '../components/CarGrid'
 import { getCars } from '../lib/api'
+import AdSlot from '../components/AdSlot'
 
 export default function Home() {
   const [cars, setCars] = useState([])
@@ -12,7 +13,7 @@ export default function Home() {
   const [sort, setSort] = useState('recent')
   const [filters, setFilters] = useState({
     q: '', brand_id: '', is_used: '', min_price: '', max_price: '',
-    province_id: '', municipality_id: ''
+    province_id: '', municipality_id: '', electric: ''
   })
 
   const fetchCars = useCallback(async (activeFilters, activePage, activeSort) => {
@@ -49,6 +50,10 @@ export default function Home() {
       <Header onSearch={handleSearch} filters={filters} />
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
 
+        <div className="mb-5">
+          <AdSlot placement="home_top" />
+        </div>
+
         {/* Contador + Orden */}
         <div className="flex items-center justify-between mb-4 gap-3">
           {!loading && (
@@ -74,6 +79,10 @@ export default function Home() {
 
         <CarGrid cars={cars} loading={loading} />
 
+        <div className="my-8">
+          <AdSlot placement="home_middle" />
+        </div>
+
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-10 flex-wrap">
             <button
@@ -82,7 +91,7 @@ export default function Home() {
               className="px-3 py-2 rounded-lg text-xs sm:text-sm border border-slate-300 bg-white
                          text-slate-600 hover:border-slate-400 disabled:opacity-40 transition-colors"
             >
-              ← Ant.
+              ← Anterior.
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <button

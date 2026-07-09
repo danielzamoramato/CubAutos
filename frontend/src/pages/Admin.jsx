@@ -3,12 +3,22 @@ import { Link } from 'react-router-dom'
 import {
   getAdminCars, deleteCar, toggleCarActive,
   getAdminRentals, deleteRental, toggleRentalActive,
+  getAllAds, deleteAd,
   login
 } from '../lib/api'
 import CarForm from '../components/CarForm'
 import RentalForm from '../components/RentalForm'
+import AdForm from '../components/AdForm'
 
 const TOKEN_KEY = 'cubautos_token'
+
+const PLACEMENT_LABELS = {
+  home_top: 'Inicio — superior',
+  home_grid: 'Inicio — listado',
+  rentals_top: 'Rentas — superior',
+  detail_sidebar: 'Detalle carro',
+  rental_detail: 'Detalle renta',
+}
 
 export default function Admin() {
   const [token, setToken] = useState(sessionStorage.getItem(TOKEN_KEY) || '')
@@ -16,14 +26,15 @@ export default function Admin() {
   const [pwdInput, setPwdInput] = useState('')
   const [error, setError] = useState('')
 
-  const [listType, setListType] = useState('sale') // 'sale' | 'rental' — qué lista se muestra
+  const [listType, setListType] = useState('sale') // 'sale' | 'rental' | 'ads'
   const [cars, setCars] = useState([])
   const [rentals, setRentals] = useState([])
+  const [ads, setAds] = useState([])
   const [loading, setLoading] = useState(false)
 
   // view: 'list' | 'choose' | 'create' | 'edit'
   const [view, setView] = useState('list')
-  const [formType, setFormType] = useState(null) // 'sale' | 'rental' — qué formulario se usa
+  const [formType, setFormType] = useState(null) // 'sale' | 'rental' | 'ad'
   const [editing, setEditing] = useState(null)
 
   const handleLogin = async (e) => {
@@ -51,9 +62,12 @@ export default function Admin() {
       if (listType === 'sale') {
         const { data } = await getAdminCars(token)
         setCars(data.cars ?? [])
-      } else {
+      } else if (listType === 'rental') {
         const { data } = await getAdminRentals(token)
         setRentals(data.rentals ?? [])
+      } else {
+        const { data } = await getAllAds(token)
+        setAds(data.ads ?? [])
       }
     } catch {
       setError('Error al cargar los datos')
@@ -72,6 +86,11 @@ export default function Admin() {
   const handleDeleteRental = async (id) => {
     if (!confirm('¿Eliminar este carro de renta?')) return
     try { await deleteRental(id, token); fetchData() } catch { setError('Error al eliminar') }
+  }
+
+  const handleDeleteAd = async (id) => {
+    if (!confirm('¿Eliminar este anuncio?')) return
+    try { await deleteAd(id, token); fetchData() } catch { setError('Error al eliminar') }
   }
 
   const handleToggleCar = async (car) => {
@@ -93,7 +112,12 @@ export default function Admin() {
 
   const startCreate = () => {
     setEditing(null)
-    setView('choose')
+    if (listType === 'ads') {
+      setFormType('ad')
+      setView('create')
+    } else {
+      setView('choose')
+    }
   }
 
   const chooseType = (type) => {
@@ -126,7 +150,7 @@ export default function Admin() {
     </div>
   )
 
-  // ── Selector de tipo al crear ────────────────────────────
+  // ── Selector de tipo al crear (solo venta/renta) ─────────
   if (view === 'choose') return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
       <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm w-full max-w-sm text-center">
@@ -170,6 +194,8 @@ export default function Admin() {
         </button>
         {formType === 'rental' ? (
           <RentalForm token={token} rental={editing} onSaved={handleSaved} />
+        ) : formType === 'ad' ? (
+          <AdForm token={token} ad={editing} onSaved={handleSaved} />
         ) : (
           <CarForm token={token} car={editing} onSaved={handleSaved} />
         )}
@@ -178,7 +204,7 @@ export default function Admin() {
   )
 
   // ── Lista ────────────────────────────────────────────────
-  const items = listType === 'sale' ? cars : rentals
+  const items = listType === 'sale' ? cars : listType === 'rental' ? rentals : ads
   const priceField = listType === 'sale' ? 'price' : 'price_per_day'
 
   return (
@@ -194,7 +220,9 @@ export default function Admin() {
             <button onClick={startCreate}
               className="bg-slate-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium
                          hover:bg-slate-600 transition-colors">
-              <span className="hidden sm:inline">+ Nuevo anuncio</span>
+              <span className="hidden sm:inline">
+                + Nuevo {listType === 'ads' ? 'anuncio' : 'anuncio de vehículo'}
+              </span>
               <span className="sm:hidden">+ Nuevo</span>
             </button>
             <button onClick={logout}
@@ -205,7 +233,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Tabs Venta / Renta */}
+        {/* Tabs Venta / Renta / Anuncios */}
         <div className="flex gap-2 mb-5">
           <button onClick={() => setListType('sale')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
@@ -217,6 +245,11 @@ export default function Admin() {
               ${listType === 'rental' ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>
             Renta
           </button>
+          <button onClick={() => setListType('ads')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+              ${listType === 'ads' ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>
+            Anuncios
+          </button>
         </div>
 
         {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg mb-4">{error}</div>}
@@ -225,8 +258,16 @@ export default function Admin() {
           <div className="text-center py-20 text-slate-400">Cargando...</div>
         ) : items.length === 0 ? (
           <div className="text-center py-20 text-slate-400">
-            No hay {listType === 'sale' ? 'carros en venta' : 'carros de renta'} aún
+            {listType === 'sale' && 'No hay carros en venta aún'}
+            {listType === 'rental' && 'No hay carros de renta aún'}
+            {listType === 'ads' && 'No hay anuncios publicitarios aún'}
           </div>
+        ) : listType === 'ads' ? (
+          <AdsListView
+            ads={ads}
+            onEdit={item => startEdit(item, 'ad')}
+            onDelete={handleDeleteAd}
+          />
         ) : (
           <>
             {/* Tabla desktop */}
@@ -325,6 +366,42 @@ export default function Admin() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function AdsListView({ ads, onEdit, onDelete }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {ads.map(ad => (
+        <div key={ad.id} className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden
+          ${!ad.is_active ? 'opacity-50' : ''}`}>
+          <div className="h-28 bg-slate-100">
+            <img src={ad.image_url} alt={ad.title || 'Anuncio'}
+              onError={e => e.target.style.display = 'none'}
+              className="w-full h-full object-cover" />
+          </div>
+          <div className="p-4">
+            <p className="font-semibold text-slate-800 text-sm truncate">
+              {ad.title || 'Sin nombre'}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              {PLACEMENT_LABELS[ad.placement] || ad.placement}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">👁 {ad.clicks ?? 0} clicks</p>
+            <div className="flex gap-3 mt-3">
+              <button type="button" onClick={() => onEdit(ad)}
+                className="text-slate-500 hover:text-slate-700 text-xs font-medium">
+                Editar
+              </button>
+              <button type="button" onClick={() => onDelete(ad.id)}
+                className="text-red-400 hover:text-red-600 text-xs font-medium">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

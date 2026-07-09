@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Header from '../components/Header'
 import RentalCard from '../components/RentalCard'
 import { getRentalsList } from '../lib/api'
+import AdSlot from '../components/AdSlot'
 
 export default function Rentals() {
   const [rentals, setRentals] = useState([])
@@ -43,6 +44,10 @@ export default function Rentals() {
     <div className="min-h-screen bg-slate-100">
       <Header onSearch={handleSearch} filters={filters} mode="rentals" />
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
+
+        <div className="mb-5">
+          <AdSlot placement="rentals_top" />
+        </div>
 
         <div className="flex items-center justify-between mb-4 gap-3">
           {!loading && (

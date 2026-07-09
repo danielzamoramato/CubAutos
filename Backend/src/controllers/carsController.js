@@ -5,7 +5,7 @@ const { uploadStream, deleteImage } = require('../lib/cloudinary');
 
 const getCars = async (req, res) => {
   try {
-    const { q, brand, used, min_price, max_price, province, municipality_id, sort, page = 1, limit = 12 } = req.query;
+    const { q, brand, used, min_price, max_price, province, municipality_id, sort, electric,page = 1, limit = 12 } = req.query;
     const offset = (page - 1) * limit;
 
     const conditions = ['c.is_active = true'];
@@ -27,6 +27,11 @@ const getCars = async (req, res) => {
     if (max_price) { conditions.push(`c.price <= $${i}`); values.push(Number(max_price)); i++; }
     if (province) { conditions.push(`c.province_id = $${i}`); values.push(province); i++; }
     if (municipality_id) { conditions.push(`c.municipality_id = $${i}`); values.push(municipality_id); i++; }
+    if (electric !== undefined && electric !== '') {
+  conditions.push(`c.is_electric = $${i}`);
+  values.push(electric === 'true');
+  i++;
+}
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -47,7 +52,7 @@ const getCars = async (req, res) => {
       ),
       pool.query(
         `SELECT
-           c.id, c.model, c.year, c.price, c.is_used, c.km,
+           c.id, c.model, c.year, c.price, c.is_used, c.km, c.is_electric,
            c.owner_phone, c.created_at,
            b.name AS brand,
            p.name AS province,
@@ -173,7 +178,7 @@ const createCar = async (req, res) => {
     const {
       brand_id, model, year, price, is_used, km,
       description, province_id, municipality_id,
-      owner_name, owner_phone,
+      owner_name, owner_phone, is_electric
     } = req.body;
 
     await client.query('BEGIN');
@@ -181,14 +186,15 @@ const createCar = async (req, res) => {
     const result = await client.query(
       `INSERT INTO cars
          (brand_id, model, year, price, is_used, km, description,
-          province_id, municipality_id, owner_name, owner_phone)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+          province_id, municipality_id, owner_name, owner_phone, is_electric)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING id`,
       [brand_id, model, year, price,
        is_used ?? true,
        is_used ? (km ?? null) : null,
        description, province_id, municipality_id,
-       owner_name, owner_phone]
+       owner_name, owner_phone,
+      is_electric ?? false]
     );
 
     const carId = result.rows[0].id;
@@ -223,7 +229,7 @@ const updateCar = async (req, res) => {
     const {
       brand_id, model, year, price, is_used, km,
       description, province_id, municipality_id,
-      owner_name, owner_phone, is_active,
+      owner_name, owner_phone, is_active, is_electric,
     } = req.body;
 
     await pool.query(
@@ -232,13 +238,13 @@ const updateCar = async (req, res) => {
          is_used=$5, km=$6, description=$7,
          province_id=$8, municipality_id=$9,
          owner_name=$10, owner_phone=$11,
-         is_active=$12
-       WHERE id=$13`,
+         is_active=$12, is_electric=$13
+       WHERE id=$14`,
       [brand_id, model, year, price,
        is_used, is_used ? km : null,
        description, province_id, municipality_id,
        owner_name, owner_phone,
-       is_active ?? true, id]
+       is_active ?? true,is_electric ?? false, id]
     );
 
     res.json({ message: 'Carro actualizado' });

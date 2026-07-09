@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getRentalById } from '../lib/api'
 import { Helmet } from 'react-helmet-async'
+import AdSlot from '../components/AdSlot'
 
 export default function RentalDetailPage() {
   const { id } = useParams()
@@ -100,6 +101,11 @@ export default function RentalDetailPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
+
+        <div className="mb-5 sm:mb-8">
+          <AdSlot placement="rental_detail" />
+        </div>
+
         <div className="flex flex-col gap-5 sm:gap-8">
 
           <div>
