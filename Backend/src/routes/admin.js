@@ -5,7 +5,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const {
   createCar, updateCar, deleteCar,
-  addImages, deleteImageById, setCover,
+  addImages, deleteImageById, setCover, setFeatured,
 } = require('../controllers/carsController');
 
 const upload = multer({
@@ -19,10 +19,13 @@ const upload = multer({
 
 router.use(auth);
 
+router.patch('/cars/:id/featured', setFeatured);
+
 router.get('/cars', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT c.id, c.model, c.year, c.price, c.is_used, c.is_active, c.views,
+              c.is_featured, c.featured_until,
               b.name AS brand, p.name AS province
        FROM cars c
        LEFT JOIN brands b ON b.id = c.brand_id

@@ -9,6 +9,8 @@ export default function RentalCard({ rental }) {
       style: 'currency', currency: 'USD', maximumFractionDigits: 0
     }).format(p)
 
+    const isFeatured = rental.is_featured && rental.featured_until && new Date(rental.featured_until) > new Date()
+
   return (
     <Link
       to={`/rentas/${rental.id}`}
@@ -34,10 +36,15 @@ export default function RentalCard({ rental }) {
             <span className="text-xs mt-2">Sin foto</span>
           </div>
         )}
-        <span className="absolute top-2 left-2 text-xs font-semibold px-2.5 py-1 rounded-full
-                         backdrop-blur-sm bg-amber-400/90 text-slate-900">
+        <span className="absolute top-2 left-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-amber-400/90 text-slate-900">
           Renta
         </span>
+
+        {isFeatured && (
+          <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-amber-400/90 text-slate-900 flex items-center gap-1">
+            ★ Destacado
+          </span>
+        )}
       </div>
 
       <div className="p-3 sm:p-4 flex flex-col flex-1">

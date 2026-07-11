@@ -9,6 +9,8 @@ export default function CarCard({ car }) {
       style: 'currency', currency: 'USD', maximumFractionDigits: 0
     }).format(p)
 
+    const isFeatured = car.is_featured && car.featured_until && new Date(car.featured_until) > new Date()
+
   return (
     <Link
       to={`/cars/${car.id}`}
@@ -35,15 +37,23 @@ export default function CarCard({ car }) {
             <span className="text-xs mt-2">Sin foto</span>
           </div>
         )}
+        
         <span className={`absolute top-2 left-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm
         ${car.is_used ? 'bg-slate-800/80 text-slate-200' : 'bg-emerald-500/90 text-white'}`}>
-        {car.is_used ? 'Usado' : 'Nuevo'}
-       </span>
-         {car.is_electric && (
-        <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-teal-500/90 text-white">
-          ⚡ Eléctrico
-       </span>
-)}
+          {car.is_used ? 'Usado' : 'Nuevo'}
+        </span>
+
+        {isFeatured && (
+          <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-amber-400/90 text-slate-900 flex items-center gap-1">
+            ★ Destacado
+          </span>
+        )}
+
+        {car.is_electric && (
+          <span className="absolute top-12 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-teal-500/90 text-white">
+            ⚡ Eléctrico
+          </span>
+        )}
       </div>
 
       {/* Info */}

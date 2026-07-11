@@ -9,6 +9,8 @@ import {
 import CarForm from '../components/CarForm'
 import RentalForm from '../components/RentalForm'
 import AdForm from '../components/AdForm'
+import { setCarFeatured, setRentalFeatured } from '../lib/api'
+import FeaturedModal from '../components/FeaturedModal'
 
 const TOKEN_KEY = 'cubautos_token'
 
@@ -25,6 +27,7 @@ export default function Admin() {
   const [authed, setAuthed] = useState(!!sessionStorage.getItem(TOKEN_KEY))
   const [pwdInput, setPwdInput] = useState('')
   const [error, setError] = useState('')
+  const [featuredModalItem, setFeaturedModalItem] = useState(null)
 
   const [listType, setListType] = useState('sale') // 'sale' | 'rental' | 'ads'
   const [cars, setCars] = useState([])
@@ -129,6 +132,20 @@ export default function Admin() {
     setEditing(item)
     setFormType(type)
     setView('edit')
+  }
+
+  const handleSetFeatured = async (featured_until) => {
+    try {
+      if (listType === 'sale') {
+        await setCarFeatured(featuredModalItem.id, featured_until, token)
+      } else {
+        await setRentalFeatured(featuredModalItem.id, featured_until, token)
+      }
+      setFeaturedModalItem(null)
+      await fetchData()
+    } catch {
+      setError('Error al actualizar destacado')
+    }
   }
 
   // ── Login ────────────────────────────────────────────────
@@ -305,6 +322,16 @@ export default function Admin() {
                         </button>
                       </td>
                       <td className="px-4 py-3 flex gap-3">
+                        <button type="button" onClick={() => setFeaturedModalItem(item)}
+    className={`text-xs font-medium ${
+      item.is_featured && item.featured_until && new Date(item.featured_until) > new Date()
+        ? 'text-amber-500 hover:text-amber-600'
+        : 'text-slate-500 hover:text-slate-700'
+    }`}>
+    {item.is_featured && item.featured_until && new Date(item.featured_until) > new Date()
+      ? '★ Destacado'
+      : 'Destacar'}
+  </button>
                         <button type="button" onClick={() => startEdit(item, listType)}
                           className="text-slate-500 hover:text-slate-700 text-xs font-medium">
                           Editar
@@ -323,6 +350,7 @@ export default function Admin() {
 
             {/* Tarjetas mobile */}
             <div className="md:hidden space-y-3">
+
               {items.map(item => (
                 <div key={item.id}
                   className={`bg-white rounded-xl p-4 shadow-sm border border-slate-200
@@ -341,6 +369,16 @@ export default function Admin() {
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex gap-3">
+                      <button type="button" onClick={() => setFeaturedModalItem(item)}
+    className={`text-sm font-medium ${
+      item.is_featured && item.featured_until && new Date(item.featured_until) > new Date()
+        ? 'text-amber-500'
+        : 'text-slate-500'
+    }`}>
+    {item.is_featured && item.featured_until && new Date(item.featured_until) > new Date()
+      ? '★'
+      : 'Destacar'}
+  </button>
                       <button type="button" onClick={() => startEdit(item, listType)}
                         className="text-slate-500 hover:text-slate-700 text-sm font-medium">
                         Editar
@@ -366,6 +404,14 @@ export default function Admin() {
           </>
         )}
       </div>
+
+      {featuredModalItem && (
+        <FeaturedModal
+          item={featuredModalItem}
+          onConfirm={handleSetFeatured}
+          onClose={() => setFeaturedModalItem(null)}
+        />
+      )}
     </div>
   )
 }
@@ -403,5 +449,9 @@ function AdsListView({ ads, onEdit, onDelete }) {
         </div>
       ))}
     </div>
+
+     
   )
+
+
 }

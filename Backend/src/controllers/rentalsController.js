@@ -36,6 +36,7 @@ const getRentals = async (req, res) => {
       price_desc: 'r.price_per_day DESC',
     };
     const orderBy = sortOptions[sort] || sortOptions.recent;
+    const finalOrderBy = `(r.is_featured AND r.featured_until > NOW()) DESC, ${orderBy}`;
 
     const [countResult, result] = await Promise.all([
       pool.query(
@@ -47,6 +48,7 @@ const getRentals = async (req, res) => {
       pool.query(
         `SELECT
            r.id, r.model, r.year, r.price_per_day, r.transmission, r.seats,
+           r.is_featured, r.featured_until,
            r.owner_phone, r.created_at,
            b.name AS brand,
            p.name AS province,
@@ -58,7 +60,7 @@ const getRentals = async (req, res) => {
          LEFT JOIN municipalities m ON r.municipality_id = m.id
          LEFT JOIN rental_images img ON img.rental_id = r.id AND img.is_cover = true
          ${where}
-         ORDER BY ${orderBy}
+         ORDER BY ${finalOrderBy}
          LIMIT $${i} OFFSET $${i + 1}`,
         [...values, limit, offset]
       ),
@@ -334,6 +336,7 @@ const getAdminRentals = async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT r.id, r.model, r.year, r.price_per_day, r.transmission, r.is_active, r.views,
+              r.is_featured, r.featured_until,
               b.name AS brand, p.name AS province
        FROM rentals r
        LEFT JOIN brands b ON b.id = r.brand_id
@@ -347,8 +350,33 @@ const getAdminRentals = async (req, res) => {
   }
 };
 
+const setRentalFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { featured_until } = req.body;
+
+    const result = await pool.query(
+      `UPDATE rentals SET
+         is_featured = $1,
+         featured_until = $2
+       WHERE id = $3
+       RETURNING is_featured, featured_until`,
+      [!!featured_until, featured_until || null, id]
+    );
+
+    res.json({
+      message: 'Destacado actualizado',
+      is_featured: result.rows[0].is_featured,
+      featured_until: result.rows[0].featured_until
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar destacado' });
+  }
+};
+
 module.exports = {
-  getRentals, getRentalById, getAdminRentals,
+  getRentals, getRentalById, getAdminRentals, setRentalFeatured,
   createRental, updateRental, deleteRental,
   addRentalImages, deleteRentalImage, setRentalCover, toggleRentalActive,
 };

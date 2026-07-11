@@ -36,11 +36,14 @@ const getCars = async (req, res) => {
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const sortOptions = {
-      recent: 'c.created_at DESC',
-      price_asc: 'c.price ASC',
-      price_desc: 'c.price DESC',
-    };
-    const orderBy = sortOptions[sort] || sortOptions.recent;
+  recent: 'c.created_at DESC',
+  price_asc: 'c.price ASC',
+  price_desc: 'c.price DESC',
+};
+const orderBy = sortOptions[sort] || sortOptions.recent;
+
+// Los destacados vigentes van primero, sin importar el orden elegido
+const finalOrderBy = `(c.is_featured AND c.featured_until > NOW()) DESC, ${orderBy}`;
 
     // Paralelizar count + select en vez de esperar uno y luego el otro
     const [countResult, result] = await Promise.all([
@@ -53,6 +56,7 @@ const getCars = async (req, res) => {
       pool.query(
         `SELECT
            c.id, c.model, c.year, c.price, c.is_used, c.km, c.is_electric,
+           c.is_featured, c.featured_until,
            c.owner_phone, c.created_at,
            b.name AS brand,
            p.name AS province,
@@ -64,7 +68,7 @@ const getCars = async (req, res) => {
          LEFT JOIN municipalities m ON c.municipality_id = m.id
          LEFT JOIN car_images img ON img.car_id = c.id AND img.is_cover = true
          ${where}
-         ORDER BY ${orderBy}
+         ORDER BY ${finalOrderBy}
          LIMIT $${i} OFFSET $${i + 1}`,
         [...values, limit, offset]
       ),
@@ -372,8 +376,33 @@ const setCover = async (req, res) => {
   }
 };
 
+const setFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { featured_until } = req.body; // fecha ISO o null para quitar destacado
+
+    const result = await pool.query(
+      `UPDATE cars SET
+         is_featured = $1,
+         featured_until = $2
+       WHERE id = $3
+       RETURNING is_featured, featured_until`,
+      [!!featured_until, featured_until || null, id]
+    );
+
+    res.json({
+      message: 'Destacado actualizado',
+      is_featured: result.rows[0].is_featured,
+      featured_until: result.rows[0].featured_until
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar destacado' });
+  }
+};
+
 module.exports = {
-  getCars, getCarById, getRelatedCars,
+  getCars, getCarById, getRelatedCars, setFeatured,
   createCar, updateCar, deleteCar,
   addImages, deleteImageById, setCover,
 };

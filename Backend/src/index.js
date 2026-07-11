@@ -2,8 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const authRouter = require('./routes/auth');
-const adsRoutes = require('./routes/ads');
-const adminAdsRoutes = require('./routes/adminAds');
+const promosRoutes = require('./routes/promos');
+const adminPromosRoutes = require('./routes/adminPromos');
 const carsRoutes  = require('./routes/cars');
 const adminRoutes = require('./routes/admin');
 const metaRoutes  = require('./routes/meta');
@@ -24,8 +24,8 @@ app.use('/api',        metaRoutes);
 app.use('/api/auth', authRouter);
 app.use('/api/rentals', rentalsRoutes);
 app.use('/api/admin/rentals', adminRentalsRoutes);
-app.use('/api/ads', adsRoutes);
-app.use('/api/admin/ads', adminAdsRoutes);
+app.use('/api/promos', promosRoutes);
+app.use('/api/admin/promos', adminPromosRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

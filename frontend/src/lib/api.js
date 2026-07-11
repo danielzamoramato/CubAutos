@@ -79,10 +79,15 @@ export const setRentalCover = (imageId, rentalId, token) =>
 export const toggleRentalActive = (id, is_active, token) =>
   api.patch(`/admin/rentals/${id}/toggle`, { is_active }, { headers: adminHeaders(token) })
 
-export const getAd = (placement) => api.get(`/ads/${placement}`)
-export const registerAdClick = (id) => api.post(`/ads/${id}/click`)
+export const getAd = (placement) => api.get(`/promos/${placement}`)
+export const registerAdClick = (id) => api.post(`/promos/${id}/click`)
 
-export const getAllAds = (token) => api.get('/admin/ads', { headers: adminHeaders(token) })
-export const createAd = (data, token) => api.post('/admin/ads', data, { headers: adminHeaders(token) })
-export const updateAd = (id, data, token) => api.put(`/admin/ads/${id}`, data, { headers: adminHeaders(token) })
-export const deleteAd = (id, token) => api.delete(`/admin/ads/${id}`, { headers: adminHeaders(token) })
+export const getAllAds = (token) => api.get('/admin/promos', { headers: adminHeaders(token) })
+export const createAd = (data, token) => api.post('/admin/promos', data, { headers: adminHeaders(token) })
+export const updateAd = (id, data, token) => api.put(`/admin/promos/${id}`, data, { headers: adminHeaders(token) })
+export const deleteAd = (id, token) => api.delete(`/admin/promos/${id}`, { headers: adminHeaders(token) })
+export const setCarFeatured = (id, featured_until, token) =>
+  api.patch(`/admin/cars/${id}/featured`, { featured_until }, { headers: adminHeaders(token) })
+
+export const setRentalFeatured = (id, featured_until, token) =>
+  api.patch(`/admin/rentals/${id}/featured`, { featured_until }, { headers: adminHeaders(token) })

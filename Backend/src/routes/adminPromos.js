@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { getAllAds, createAd, updateAd, deleteAd } = require('../controllers/adsControllers');
+const { getAllAds, createAd, updateAd, deleteAd } = require('../controllers/promosControllers');
 
 router.use(auth);
 

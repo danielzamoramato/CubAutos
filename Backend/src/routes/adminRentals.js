@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const {
   getAdminRentals, createRental, updateRental, deleteRental,
   addRentalImages, deleteRentalImage, setRentalCover, toggleRentalActive,
+  setRentalFeatured,
 } = require('../controllers/rentalsController');
 
 const upload = multer({
@@ -17,6 +18,8 @@ const upload = multer({
 });
 
 router.use(auth);
+
+router.patch('/:id/featured', setRentalFeatured);
 
 router.get('/', getAdminRentals);
 router.post('/', upload.array('images', 20), createRental);
