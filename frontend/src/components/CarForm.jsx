@@ -79,12 +79,15 @@ export default function CarForm({ token, car, onSaved }) {
   try {
     let carId = car?.id
     const payload = {
-      ...form,
-      price: Number(form.price),
-      is_used: form.is_used === 'true' || form.is_used === true,
-      km: (form.is_used === true || form.is_used === 'true') ? form.km : null,
-      is_electric: form.is_electric,
-      is_active: true,
+  ...form,
+  price: Number(form.price),
+  is_used: form.is_used === 'true' || form.is_used === true,
+  km: (form.is_used === true || form.is_used === 'true') && form.km !== ''
+    ? Number(form.km)
+    : null,
+  is_electric: form.is_electric,
+  is_active: true,
+
     }
     if (isEdit) {
       await updateCar(carId, payload, token)
