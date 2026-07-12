@@ -182,8 +182,12 @@ const createCar = async (req, res) => {
     const {
       brand_id, model, year, price, is_used, km,
       description, province_id, municipality_id,
-      owner_name, owner_phone, is_electric
+      owner_name, owner_phone, is_electric,
     } = req.body;
+
+    // Sanitizar campos numéricos opcionales
+    const cleanYear = year === '' || year === undefined ? null : Number(year);
+    const cleanKm = (is_used && km !== '' && km !== undefined) ? Number(km) : null;
 
     await client.query('BEGIN');
 
@@ -193,12 +197,12 @@ const createCar = async (req, res) => {
           province_id, municipality_id, owner_name, owner_phone, is_electric)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING id`,
-      [brand_id, model, year, price,
+      [brand_id, model, cleanYear, price,
        is_used ?? true,
-       is_used ? (km ?? null) : null,
+       cleanKm,
        description, province_id, municipality_id,
        owner_name, owner_phone,
-      is_electric ?? false]
+       is_electric ?? false]
     );
 
     const carId = result.rows[0].id;
@@ -236,6 +240,9 @@ const updateCar = async (req, res) => {
       owner_name, owner_phone, is_active, is_electric,
     } = req.body;
 
+    const cleanYear = year === '' || year === undefined ? null : Number(year);
+    const cleanKm = (is_used && km !== '' && km !== undefined) ? Number(km) : null;
+
     await pool.query(
       `UPDATE cars SET
          brand_id=$1, model=$2, year=$3, price=$4,
@@ -244,11 +251,11 @@ const updateCar = async (req, res) => {
          owner_name=$10, owner_phone=$11,
          is_active=$12, is_electric=$13
        WHERE id=$14`,
-      [brand_id, model, year, price,
-       is_used, is_used ? km : null,
+      [brand_id, model, cleanYear, price,
+       is_used, cleanKm,
        description, province_id, municipality_id,
        owner_name, owner_phone,
-       is_active ?? true,is_electric ?? false, id]
+       is_active ?? true, is_electric ?? false, id]
     );
 
     res.json({ message: 'Carro actualizado' });
