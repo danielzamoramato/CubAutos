@@ -81,8 +81,8 @@ export default function Header({ onSearch, filters, mode = 'sale' }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Link to="/" className="text-white font-bold text-lg sm:text-xl shrink-0 tracking-tight">
-                <span className="text-slate-300">Cub</span>
-                <span className="text-amber-400">Autos</span>
+                <span className="text-slate-300">D&D</span>
+                <span className="text-amber-400">Vehículos</span>
               </Link>
 
               <nav className="flex gap-1">
