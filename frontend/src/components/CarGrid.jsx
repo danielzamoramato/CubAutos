@@ -1,6 +1,4 @@
 import CarCard from './CarCard'
-import AdSlot from './AdSlot'
-import React from 'react'
 
 export default function CarGrid({ cars, loading }) {
   if (loading) return (
@@ -31,18 +29,9 @@ export default function CarGrid({ cars, loading }) {
     </div>
   )
 
-   return (
+  return (
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-      {cars.map((car, i) => (
-        <React.Fragment key={car.id}>
-          <CarCard car={car} />
-          {(i + 1) % 8 === 0 && (
-            <div className="col-span-1">
-              <AdSlot placement="home_grid" variant="square" />
-            </div>
-          )}
-        </React.Fragment>
-      ))}
+      {cars.map(car => <CarCard key={car.id} car={car} />)}
     </div>
   )
 }
