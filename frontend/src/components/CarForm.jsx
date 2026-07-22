@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getBrands, getProvinces, getMunicipalities, createCar, updateCar, uploadImages, deleteImage, setCover } from '../lib/api'
+import { getBrands, getProvinces, getMunicipalities, createCar, updateCar, uploadImages, deleteImage, setCover, createBrand } from '../lib/api'
 
 export default function CarForm({ token, car, onSaved }) {
   const isEdit = !!car
@@ -7,6 +7,8 @@ export default function CarForm({ token, car, onSaved }) {
   const [brands, setBrands] = useState([])
   const [provinces, setProvinces] = useState([])
   const [municipalities, setMunicipalities] = useState([])
+  const [showNewBrand, setShowNewBrand] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
   const [images, setImages] = useState(car?.images || [])
   const [newFiles, setNewFiles] = useState([])
   const [coverIndex, setCoverIndex] = useState(0)
@@ -34,6 +36,19 @@ export default function CarForm({ token, car, onSaved }) {
     getBrands().then(r => setBrands(r.data))
     getProvinces().then(r => setProvinces(r.data))
   }, [])
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) return
+    try {
+      const { data } = await createBrand(newBrandName.trim(), token)
+      setBrands(prev => [...prev, data])
+      set('brand_id', data.id)
+      setNewBrandName('')
+      setShowNewBrand(false)
+    } catch {
+      setError('Error al agregar la marca')
+    }
+  }
 
   useEffect(() => {
     if (form.province_id) {
@@ -127,11 +142,25 @@ export default function CarForm({ token, car, onSaved }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Marca *</label>
-            <select value={form.brand_id} onChange={e => set('brand_id', e.target.value)}
-              required className={inputClass}>
-              <option value="">Seleccionar...</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <div className="flex gap-2 items-center">
+              <select value={form.brand_id} onChange={e => set('brand_id', e.target.value)}
+                required className={inputClass}>
+                <option value="">Seleccionar...</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowNewBrand(s => !s)}
+                className="text-sm px-2 py-1 bg-slate-100 rounded text-slate-700 hover:bg-slate-200">
+                {showNewBrand ? 'Cancelar' : 'Agregar'}
+              </button>
+            </div>
+            {showNewBrand && (
+              <div className="mt-2 flex gap-2">
+                <input value={newBrandName} onChange={e => setNewBrandName(e.target.value)}
+                  placeholder="Nueva marca" className={`${inputClass} flex-1`} />
+                <button type="button" onClick={handleAddBrand}
+                  className="bg-amber-500 text-white px-3 py-1 rounded">Agregar</button>
+              </div>
+            )}
           </div>
           <div>
             <label className={labelClass}>Modelo *</label>

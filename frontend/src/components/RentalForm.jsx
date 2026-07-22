@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getBrands, getProvinces, getMunicipalities, createRental, updateRental, uploadRentalImages, deleteRentalImage, setRentalCover } from '../lib/api'
+import { getBrands, getProvinces, getMunicipalities, createRental, updateRental, uploadRentalImages, deleteRentalImage, setRentalCover, createBrand } from '../lib/api'
 
 export default function RentalForm({ token, rental, onSaved }) {
   const isEdit = !!rental
@@ -7,6 +7,8 @@ export default function RentalForm({ token, rental, onSaved }) {
   const [brands, setBrands] = useState([])
   const [provinces, setProvinces] = useState([])
   const [municipalities, setMunicipalities] = useState([])
+  const [showNewBrand, setShowNewBrand] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
   const [images, setImages] = useState(rental?.images || [])
   const [newFiles, setNewFiles] = useState([])
   const [coverIndex, setCoverIndex] = useState(0)
@@ -33,6 +35,19 @@ export default function RentalForm({ token, rental, onSaved }) {
     getBrands().then(r => setBrands(r.data))
     getProvinces().then(r => setProvinces(r.data))
   }, [])
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) return
+    try {
+      const { data } = await createBrand(newBrandName.trim(), token)
+      setBrands(prev => [...prev, data])
+      set('brand_id', data.id)
+      setNewBrandName('')
+      setShowNewBrand(false)
+    } catch {
+      setError('Error al agregar la marca')
+    }
+  }
 
   useEffect(() => {
     if (form.province_id) {
@@ -115,6 +130,21 @@ export default function RentalForm({ token, rental, onSaved }) {
               <option value="">Seleccionar...</option>
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
+            {!showNewBrand ? (
+              <button type="button" onClick={() => setShowNewBrand(true)}
+                className="text-xs text-amber-600 hover:text-amber-700 mt-1">
+                ¿No está tu marca? Agrégala
+              </button>
+            ) : (
+              <div className="flex gap-2 mt-2">
+                <input value={newBrandName} onChange={e => setNewBrandName(e.target.value)}
+                  placeholder="Nombre de la marca" className={inputClass} />
+                <button type="button" onClick={handleAddBrand}
+                  className="bg-slate-700 text-white px-3 py-2 rounded-lg text-xs font-medium shrink-0">
+                  Agregar
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label className={labelClass}>Modelo *</label>

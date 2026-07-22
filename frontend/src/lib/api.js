@@ -91,3 +91,6 @@ export const setCarFeatured = (id, featured_until, token) =>
 
 export const setRentalFeatured = (id, featured_until, token) =>
   api.patch(`/admin/rentals/${id}/featured`, { featured_until }, { headers: adminHeaders(token) })
+
+export const createBrand = (name, token) =>
+  api.post('/admin/brands', { name }, { headers: adminHeaders(token) })
