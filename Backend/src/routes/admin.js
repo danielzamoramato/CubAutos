@@ -58,4 +58,21 @@ router.patch('/cars/:id/toggle', async (req, res) => {
   }
 })
 
+router.post('/brands', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'El nombre es obligatorio' });
+    }
+    const { rows } = await pool.query(
+      'INSERT INTO brands (name) VALUES ($1) RETURNING id, name',
+      [name.trim()]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear la marca' });
+  }
+});
+
 module.exports = router;
