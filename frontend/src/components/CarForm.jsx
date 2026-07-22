@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react'
 import { getBrands, getProvinces, getMunicipalities, createCar, updateCar, uploadImages, deleteImage, setCover, createBrand } from '../lib/api'
 
+const KM_TO_MI = 0.621371
+
 export default function CarForm({ token, car, onSaved }) {
   const isEdit = !!car
 
   const [brands, setBrands] = useState([])
   const [provinces, setProvinces] = useState([])
   const [municipalities, setMunicipalities] = useState([])
-  const [showNewBrand, setShowNewBrand] = useState(false)
-  const [newBrandName, setNewBrandName] = useState('')
   const [images, setImages] = useState(car?.images || [])
   const [newFiles, setNewFiles] = useState([])
   const [coverIndex, setCoverIndex] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const [showNewBrand, setShowNewBrand] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
+  const [addingBrand, setAddingBrand] = useState(false)
+
+  const [kmUnit, setKmUnit] = useState('km') // 'km' | 'mi'
 
   const [form, setForm] = useState({
     brand_id: car?.brand_id || '',
@@ -21,7 +27,7 @@ export default function CarForm({ token, car, onSaved }) {
     year: car?.year || '',
     price: car?.price || '',
     is_used: car?.is_used ?? true,
-    km: car?.km || '',
+    km: car?.km ?? '',
     is_electric: car?.is_electric ?? false,
     description: car?.description || '',
     province_id: car?.province_id || '',
@@ -37,19 +43,6 @@ export default function CarForm({ token, car, onSaved }) {
     getProvinces().then(r => setProvinces(r.data))
   }, [])
 
-  const handleAddBrand = async () => {
-    if (!newBrandName.trim()) return
-    try {
-      const { data } = await createBrand(newBrandName.trim(), token)
-      setBrands(prev => [...prev, data])
-      set('brand_id', data.id)
-      setNewBrandName('')
-      setShowNewBrand(false)
-    } catch {
-      setError('Error al agregar la marca')
-    }
-  }
-
   useEffect(() => {
     if (form.province_id) {
       getMunicipalities(form.province_id).then(r => setMunicipalities(r.data))
@@ -58,6 +51,22 @@ export default function CarForm({ token, car, onSaved }) {
       set('municipality_id', '')
     }
   }, [form.province_id])
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) return
+    setAddingBrand(true)
+    try {
+      const { data } = await createBrand(newBrandName.trim(), token)
+      setBrands(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      set('brand_id', data.id)
+      setNewBrandName('')
+      setShowNewBrand(false)
+    } catch {
+      setError('Error al agregar la marca')
+    } finally {
+      setAddingBrand(false)
+    }
+  }
 
   const handleDeleteImage = async (imgId) => {
     if (!confirm('¿Eliminar esta imagen?')) return
@@ -70,153 +79,217 @@ export default function CarForm({ token, car, onSaved }) {
     setImages(prev => prev.map(i => ({ ...i, is_cover: i.id === imgId })))
   }
 
-  const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
+  // Muestra el km guardado (siempre en km) convertido a la unidad elegida
+  const displayKm = form.km === '' ? '' : (kmUnit === 'mi' ? Math.round(form.km * KM_TO_MI) : form.km)
 
-  // Validaciones
-  if (!form.brand_id) return setError('Selecciona una marca')
-  if (!form.model.trim()) return setError('El modelo es obligatorio')
-  if (!form.price || Number(form.price) <= 0) return setError('El precio debe ser mayor a 0')
-  if (!form.province_id) return setError('Selecciona una provincia')
-  if (!form.owner_phone.trim()) return setError('El teléfono de contacto es obligatorio')
-  if ((form.is_used === true || form.is_used === 'true') && form.km && Number(form.km) < 0)
-    return setError('El kilometraje no puede ser negativo')
-  if (!isEdit && newFiles.length === 0)
-    return setError('Agrega al menos una foto del vehículo')
-
-  // Validar formato teléfono cubano (+53 5xxxxxxx o 5xxxxxxx)
-  const phone = form.owner_phone.replace(/\D/g, '')
-  if (phone.length < 8 || phone.length > 11)
-    return setError('El teléfono no parece válido. Ejemplo: +53 5 123 4567')
-
-  setSaving(true)
-  try {
-    let carId = car?.id
-    const payload = {
-  ...form,
-  price: Number(form.price),
-  is_used: form.is_used === 'true' || form.is_used === true,
-  km: (form.is_used === true || form.is_used === 'true') && form.km !== ''
-    ? Number(form.km)
-    : null,
-  is_electric: form.is_electric,
-  is_active: true,
-
-    }
-    if (isEdit) {
-      await updateCar(carId, payload, token)
-    } else {
-      const { data } = await createCar(payload, token)
-      carId = data.id
-    }
-    if (newFiles.length > 0) {
-      await uploadImages(carId, newFiles, coverIndex, token)
-    }
-    onSaved()
-  } catch (err) {
-    setError(err.response?.data?.error || 'Error al guardar')
-  } finally {
-    setSaving(false)
+  const handleKmChange = (value) => {
+    if (value === '') return set('km', '')
+    const num = Number(value)
+    // Convierte siempre de vuelta a km para guardar consistente en la DB
+    const inKm = kmUnit === 'mi' ? Math.round(num / KM_TO_MI) : num
+    set('km', inKm)
   }
-}
 
-  const inputClass = `w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm
-    focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-colors`
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
 
-  const labelClass = `text-xs text-slate-500 mb-1 block font-medium`
+    if (!form.brand_id) return setError('Selecciona una marca')
+    if (!form.model.trim()) return setError('El modelo es obligatorio')
+    if (!form.price || Number(form.price) <= 0) return setError('El precio debe ser mayor a 0')
+    if (!form.province_id) return setError('Selecciona una provincia')
+    if (!form.owner_phone.trim()) return setError('El teléfono de contacto es obligatorio')
+    if (!isEdit && newFiles.length === 0) return setError('Agrega al menos una foto del vehículo')
+
+    setSaving(true)
+    try {
+      let carId = car?.id
+      const payload = {
+        ...form,
+        price: Number(form.price),
+        is_used: form.is_used === 'true' || form.is_used === true,
+        km: (form.is_used === true || form.is_used === 'true') && form.km !== ''
+          ? Number(form.km)
+          : null,
+        is_electric: form.is_electric,
+        is_active: true,
+      }
+      if (isEdit) {
+        await updateCar(carId, payload, token)
+      } else {
+        const { data } = await createCar(payload, token)
+        carId = data.id
+      }
+      if (newFiles.length > 0) {
+        await uploadImages(carId, newFiles, coverIndex, token)
+      }
+      onSaved()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputClass = `w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white
+    focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all`
+  const labelClass = `text-xs text-slate-500 mb-1.5 block font-medium`
+
+  const isUsed = form.is_used === true || form.is_used === 'true'
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-4 sm:p-6 space-y-5 sm:space-y-6">
-      <h2 className="text-lg font-semibold text-slate-800">
-        {isEdit ? 'Editar vehículo' : 'Publicar nuevo vehículo'}
-      </h2>
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 space-y-8">
 
-      {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg">{error}</div>}
+      <div>
+        <h2 className="text-xl font-bold text-slate-800">
+          {isEdit ? 'Editar vehículo' : 'Publicar nuevo vehículo'}
+        </h2>
+        <p className="text-sm text-slate-400 mt-0.5">
+          Completa la información para {isEdit ? 'actualizar' : 'publicar'} el anuncio
+        </p>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {error}
+        </div>
+      )}
 
       {/* Datos del vehículo */}
-      <section>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Datos del vehículo
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+          <h3 className="text-sm font-semibold text-slate-700">Datos del vehículo</h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-8">
           <div>
             <label className={labelClass}>Marca *</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2">
               <select value={form.brand_id} onChange={e => set('brand_id', e.target.value)}
                 required className={inputClass}>
                 <option value="">Seleccionar...</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               <button type="button" onClick={() => setShowNewBrand(s => !s)}
-                className="text-sm px-2 py-1 bg-slate-100 rounded text-slate-700 hover:bg-slate-200">
-                {showNewBrand ? 'Cancelar' : 'Agregar'}
+                className="shrink-0 px-3 rounded-lg border border-slate-200 text-slate-500 text-sm
+                           hover:border-amber-400 hover:text-amber-600 transition-colors">
+                +
               </button>
             </div>
             {showNewBrand && (
-              <div className="mt-2 flex gap-2">
+              <div className="flex gap-2 mt-2">
                 <input value={newBrandName} onChange={e => setNewBrandName(e.target.value)}
-                  placeholder="Nueva marca" className={`${inputClass} flex-1`} />
-                <button type="button" onClick={handleAddBrand}
-                  className="bg-amber-500 text-white px-3 py-1 rounded">Agregar</button>
+                  placeholder="Nombre de la marca nueva" className={inputClass} />
+                <button type="button" onClick={handleAddBrand} disabled={addingBrand}
+                  className="shrink-0 bg-slate-700 text-white px-4 rounded-lg text-sm font-medium
+                             hover:bg-slate-600 transition-colors disabled:opacity-50">
+                  {addingBrand ? '...' : 'Agregar'}
+                </button>
               </div>
             )}
           </div>
+
           <div>
             <label className={labelClass}>Modelo *</label>
             <input value={form.model} onChange={e => set('model', e.target.value)}
               required placeholder="Ej: Corolla" className={inputClass} />
           </div>
+
           <div>
             <label className={labelClass}>Año</label>
             <input type="number" value={form.year} onChange={e => set('year', e.target.value)}
               placeholder="Ej: 2018" min="1900" max="2026" className={inputClass} />
           </div>
+
           <div>
             <label className={labelClass}>Precio (USD) *</label>
-            <input type="number" value={form.price} onChange={e => set('price', e.target.value)}
-              required placeholder="Ej: 12000" min="0" className={inputClass} />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+              <input type="number" value={form.price} onChange={e => set('price', e.target.value)}
+                required placeholder="12000" min="0" className={`${inputClass} pl-7`} />
+            </div>
           </div>
+
           <div>
             <label className={labelClass}>Estado *</label>
-            <select value={form.is_used} onChange={e => set('is_used', e.target.value)}
-              className={inputClass}>
-              <option value={true}>Usado</option>
-              <option value={false}>Nuevo</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => set('is_used', true)}
+                className={`py-2.5 rounded-lg text-sm font-medium border transition-colors
+                  ${isUsed ? 'bg-amber-400 border-amber-400 text-slate-900' : 'border-slate-200 text-slate-500'}`}>
+                Usado
+              </button>
+              <button type="button" onClick={() => set('is_used', false)}
+                className={`py-2.5 rounded-lg text-sm font-medium border transition-colors
+                  ${!isUsed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 text-slate-500'}`}>
+                Nuevo
+              </button>
+            </div>
           </div>
-        <div className="flex items-center gap-2 sm:col-span-2">
-          <input
-            type="checkbox"
-            id="is_electric"
-            checked={form.is_electric}
-            onChange={e => set('is_electric', e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
-          />
-             <label htmlFor="is_electric" className="text-sm text-slate-600 cursor-pointer">
-               Es un vehículo eléctrico
-             </label>
+
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_electric}
+                onChange={e => set('is_electric', e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-400"
+              />
+              <span className="text-sm text-slate-600">⚡ Es un vehículo eléctrico</span>
+            </label>
           </div>
-          {(form.is_used === true || form.is_used === 'true') && (
-            <div>
-              <label className={labelClass}>Kilometraje</label>
-              <input type="number" value={form.km} onChange={e => set('km', e.target.value)}
-                placeholder="Ej: 85000" min="0" className={inputClass} />
+
+          {isUsed && (
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Kilometraje recorrido</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={displayKm}
+                  onChange={e => handleKmChange(e.target.value)}
+                  placeholder={kmUnit === 'mi' ? 'Ej: 53000' : 'Ej: 85000'}
+                  min="0"
+                  className={inputClass}
+                />
+                <div className="flex shrink-0 rounded-lg border border-slate-200 overflow-hidden">
+                  <button type="button" onClick={() => setKmUnit('km')}
+                    className={`px-3 py-2 text-sm font-medium transition-colors
+                      ${kmUnit === 'km' ? 'bg-slate-700 text-white' : 'bg-white text-slate-500'}`}>
+                    km
+                  </button>
+                  <button type="button" onClick={() => setKmUnit('mi')}
+                    className={`px-3 py-2 text-sm font-medium transition-colors
+                      ${kmUnit === 'mi' ? 'bg-slate-700 text-white' : 'bg-white text-slate-500'}`}>
+                    mi
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Se guarda internamente en kilómetros, sin importar la unidad que elijas aquí
+              </p>
             </div>
           )}
-        </div>
-        <div className="mt-3">
-          <label className={labelClass}>Descripción</label>
-          <textarea value={form.description} onChange={e => set('description', e.target.value)}
-            rows={4} placeholder="Describe el estado, extras, historial..."
-            className={inputClass} />
+
+          <div className="sm:col-span-2">
+            <label className={labelClass}>Descripción</label>
+            <textarea value={form.description} onChange={e => set('description', e.target.value)}
+              rows={4} placeholder="Describe el estado, extras, historial..."
+              className={inputClass} />
+          </div>
         </div>
       </section>
 
       {/* Ubicación */}
-      <section>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Ubicación</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+          <h3 className="text-sm font-semibold text-slate-700">Ubicación</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-8">
           <div>
             <label className={labelClass}>Provincia *</label>
             <select value={form.province_id} onChange={e => set('province_id', e.target.value)}
@@ -238,16 +311,19 @@ export default function CarForm({ token, car, onSaved }) {
       </section>
 
       {/* Contacto */}
-      <section>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Contacto</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+          <h3 className="text-sm font-semibold text-slate-700">Contacto</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-8">
           <div>
             <label className={labelClass}>Nombre</label>
             <input value={form.owner_name} onChange={e => set('owner_name', e.target.value)}
               placeholder="Nombre completo" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Teléfono</label>
+            <label className={labelClass}>Teléfono *</label>
             <input value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)}
               placeholder="+53 5 xxx xxxx" className={inputClass} />
           </div>
@@ -256,9 +332,12 @@ export default function CarForm({ token, car, onSaved }) {
 
       {/* Fotos existentes */}
       {isEdit && images.length > 0 && (
-        <section>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Fotos actuales</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
+            <h3 className="text-sm font-semibold text-slate-700">Fotos actuales</h3>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pl-8">
             {images.map(img => (
               <div key={img.id} className="relative group rounded-lg overflow-hidden h-24 sm:h-28">
                 <img src={img.url} alt="" className="w-full h-full object-cover" />
@@ -274,9 +353,7 @@ export default function CarForm({ token, car, onSaved }) {
                   </button>
                 </div>
                 {img.is_cover && (
-                  <span className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded">
-                    ★
-                  </span>
+                  <span className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded">★</span>
                 )}
               </div>
             ))}
@@ -285,53 +362,71 @@ export default function CarForm({ token, car, onSaved }) {
       )}
 
       {/* Subir fotos */}
-<section>
-  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-    {isEdit ? 'Agregar fotos' : 'Fotos'}
-  </h3>
-
-  <input type="file" accept="image/*" multiple
-    onChange={e => setNewFiles(Array.from(e.target.files))}
-    className="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3
-               file:rounded-lg file:border-0 file:text-sm file:font-medium
-               file:bg-slate-100 file:text-slate-600 hover:file:bg-slate-200" />
-
-  {/* Contador y avisos */}
-  {newFiles.length > 0 && (
-    <p className="text-xs text-slate-500 mt-1.5">
-      {newFiles.length} {newFiles.length === 1 ? 'foto seleccionada' : 'fotos seleccionadas'}
-      {' '}— máximo 8 MB por foto
-    </p>
-  )}
-  {!isEdit && newFiles.length === 0 && (
-    <p className="text-xs text-amber-600 mt-1.5">* Al menos una foto es obligatoria</p>
-  )}
-
-  {/* Selector de portada */}
-  {newFiles.length > 1 && (
-    <div className="mt-3">
-      <label className={labelClass}>Toca una foto para seleccionarla como portada</label>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-1">
-        {newFiles.map((f, i) => (
-          <div key={i} onClick={() => setCoverIndex(i)}
-            className={`relative cursor-pointer rounded-lg overflow-hidden h-20 border-2 transition-all
-              ${i === coverIndex ? 'border-amber-400 shadow-md' : 'border-transparent opacity-70'}`}>
-            <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-            {i === coverIndex && (
-              <span className="absolute top-0.5 left-0.5 bg-amber-400 text-slate-900 text-xs px-1 rounded font-bold">
-                ★
-              </span>
-            )}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+            {isEdit ? '5' : '4'}
           </div>
-        ))}
-      </div>
-    </div>
-  )}
-</section>
+          <h3 className="text-sm font-semibold text-slate-700">
+            {isEdit ? 'Agregar fotos' : 'Fotos'}
+          </h3>
+        </div>
 
-      <button type="submit" disabled={saving}
-        className="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-medium
-                   transition-colors disabled:opacity-50 text-sm sm:text-base">
+        <div className="pl-8">
+          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed
+                            border-slate-200 rounded-xl py-8 cursor-pointer hover:border-amber-400
+                            hover:bg-amber-50/50 transition-colors">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span className="text-sm text-slate-500">
+              <span className="text-amber-600 font-medium">Toca para elegir fotos</span> o arrástralas aquí
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={e => setNewFiles(Array.from(e.target.files))}
+              className="hidden"
+            />
+          </label>
+
+          {newFiles.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">
+              {newFiles.length} {newFiles.length === 1 ? 'foto seleccionada' : 'fotos seleccionadas'} — máximo 8 MB por foto
+            </p>
+          )}
+          {!isEdit && newFiles.length === 0 && (
+            <p className="text-xs text-amber-600 mt-2">* Al menos una foto es obligatoria</p>
+          )}
+
+          {newFiles.length > 1 && (
+            <div className="mt-3">
+              <label className="text-xs text-slate-500 mb-2 block">Toca una foto para elegirla como portada</label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {newFiles.map((f, i) => (
+                  <div key={i} onClick={() => setCoverIndex(i)}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden h-20 border-2 transition-all
+                      ${i === coverIndex ? 'border-amber-400 shadow-md' : 'border-transparent opacity-70'}`}>
+                    <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                    {i === coverIndex && (
+                      <span className="absolute top-0.5 left-0.5 bg-amber-400 text-slate-900 text-xs px-1 rounded font-bold">★</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-semibold
+                   transition-colors disabled:opacity-50 text-sm sm:text-base shadow-sm"
+      >
         {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Publicar vehículo'}
       </button>
     </form>
