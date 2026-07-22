@@ -181,12 +181,12 @@ export default function RentalDetailPage() {
                   </a>
                 )}
                 {rental.owner_phone && (
-                  <a href={`https://wa.me/${rental.owner_phone.replace(/\D/g, '')}`}
-                    target="_blank" rel="noreferrer"
-                    className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
-                               text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-                    WhatsApp
-                  </a>
+                  <a href={`https://wa.me/${rental.owner_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu carro (${rental.brand} ${rental.model}) en D&D. Me interesa rentarlo.`)}`}
+  target="_blank" rel="noreferrer"
+  className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400
+             text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors">
+  WhatsApp
+</a>
                 )}
               </div>
             </div>
