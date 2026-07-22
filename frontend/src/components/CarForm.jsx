@@ -111,6 +111,7 @@ export default function CarForm({ token, car, onSaved }) {
         km: (form.is_used === true || form.is_used === 'true') && form.km !== ''
           ? Number(form.km)
           : null,
+        municipality_id: form.municipality_id || null,
         is_electric: form.is_electric,
         is_active: true,
       }
