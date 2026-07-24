@@ -43,8 +43,6 @@ export default function CarCard({ car }) {
           {car.is_used ? 'Usado' : 'Nuevo'}
         </span>
 
-        {isFeatured && (
-        )}
 
         {car.is_electric && (
           <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-teal-500/90 text-white">
