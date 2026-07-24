@@ -44,13 +44,10 @@ export default function CarCard({ car }) {
         </span>
 
         {isFeatured && (
-          <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-amber-400/90 text-slate-900 flex items-center gap-1">
-            ★ Destacado
-          </span>
         )}
 
         {car.is_electric && (
-          <span className="absolute top-12 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-teal-500/90 text-white">
+          <span className="absolute top-2 right-2 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-teal-500/90 text-white">
             ⚡ Eléctrico
           </span>
         )}
