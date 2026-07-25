@@ -5,7 +5,7 @@ const { uploadStream, deleteImage } = require('../lib/cloudinary');
 
 const getCars = async (req, res) => {
   try {
-    const { q, brand, used, min_price, max_price, province, municipality_id, sort, electric,page = 1, limit = 12 } = req.query;
+    const { q, brand_id, is_used, min_price, max_price, province_id, municipality_id, sort, electric, page = 1, limit = 12 } = req.query;
     const offset = (page - 1) * limit;
 
     const conditions = ['c.is_active = true'];
@@ -21,31 +21,59 @@ const getCars = async (req, res) => {
       values.push(`%${q}%`);
       i++;
     }
-    if (brand) { conditions.push(`c.brand_id = $${i}`); values.push(brand); i++; }
-    if (used !== undefined && used !== '') { conditions.push(`c.is_used = $${i}`); values.push(used === 'true'); i++; }
-    if (min_price) { conditions.push(`c.price >= $${i}`); values.push(Number(min_price)); i++; }
-    if (max_price) { conditions.push(`c.price <= $${i}`); values.push(Number(max_price)); i++; }
-    if (province) { conditions.push(`c.province_id = $${i}`); values.push(province); i++; }
-    if (municipality_id) { conditions.push(`c.municipality_id = $${i}`); values.push(municipality_id); i++; }
+
+    if (brand_id) {
+      conditions.push(`c.brand_id = $${i}`);
+      values.push(brand_id);
+      i++;
+    }
+
+    if (is_used !== undefined && is_used !== '') {
+      conditions.push(`c.is_used = $${i}`);
+      values.push(is_used === 'true');
+      i++;
+    }
+
+    if (min_price) {
+      conditions.push(`c.price >= $${i}`);
+      values.push(Number(min_price));
+      i++;
+    }
+
+    if (max_price) {
+      conditions.push(`c.price <= $${i}`);
+      values.push(Number(max_price));
+      i++;
+    }
+
+    if (province_id) {
+      conditions.push(`c.province_id = $${i}`);
+      values.push(province_id);
+      i++;
+    }
+
+    if (municipality_id) {
+      conditions.push(`c.municipality_id = $${i}`);
+      values.push(municipality_id);
+      i++;
+    }
+
     if (electric !== undefined && electric !== '') {
-  conditions.push(`c.is_electric = $${i}`);
-  values.push(electric === 'true');
-  i++;
-}
+      conditions.push(`c.is_electric = $${i}`);
+      values.push(electric === 'true');
+      i++;
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const sortOptions = {
-  recent: 'c.created_at DESC',
-  price_asc: 'c.price ASC',
-  price_desc: 'c.price DESC',
-};
-const orderBy = sortOptions[sort] || sortOptions.recent;
+      recent: 'c.created_at DESC',
+      price_asc: 'c.price ASC',
+      price_desc: 'c.price DESC',
+    };
+    const orderBy = sortOptions[sort] || sortOptions.recent;
+    const finalOrderBy = `(c.is_featured AND c.featured_until > NOW()) DESC, ${orderBy}`;
 
-// Los destacados vigentes van primero, sin importar el orden elegido
-const finalOrderBy = `(c.is_featured AND c.featured_until > NOW()) DESC, ${orderBy}`;
-
-    // Paralelizar count + select en vez de esperar uno y luego el otro
     const [countResult, result] = await Promise.all([
       pool.query(
         `SELECT COUNT(*) FROM cars c
