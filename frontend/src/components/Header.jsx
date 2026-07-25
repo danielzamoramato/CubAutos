@@ -39,6 +39,7 @@ export default function Header({ onSearch, filters, mode = 'sale' }) {
     const updated = { ...local, [key]: value }
     if (key === 'province_id') updated.municipality_id = ''
     setLocal(updated)
+    onSearch(updated)
   }
 
   const handleTextChange = (e) => {
