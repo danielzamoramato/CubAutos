@@ -5,60 +5,76 @@ const { uploadStream, deleteImage } = require('../lib/cloudinary');
 
 const getCars = async (req, res) => {
   try {
-    const { q, brand_id, is_used, min_price, max_price, province_id, municipality_id, sort, electric, page = 1, limit = 12 } = req.query;
-    const offset = (page - 1) * limit;
+    const {
+      q,
+      brand_id,
+      is_used,
+      min_price,
+      max_price,
+      province_id,
+      municipality_id,
+      sort,
+      electric,
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    const currentPage = Number(page) || 1;
+    const currentLimit = Number(limit) || 12;
+    const offset = (currentPage - 1) * currentLimit;
 
     const conditions = ['c.is_active = true'];
     const values = [];
     let i = 1;
 
-    if (q) {
+    const normalizedQ = typeof q === 'string' ? q.trim() : '';
+    if (normalizedQ) {
       conditions.push(`(
         LOWER(b.name) LIKE LOWER($${i}) OR
         LOWER(c.model) LIKE LOWER($${i}) OR
         LOWER(c.description) LIKE LOWER($${i})
       )`);
-      values.push(`%${q}%`);
+      values.push(`%${normalizedQ}%`);
       i++;
     }
 
-    if (brand_id) {
+    if (brand_id !== undefined && brand_id !== '') {
       conditions.push(`c.brand_id = $${i}`);
-      values.push(brand_id);
+      values.push(Number(brand_id));
       i++;
     }
 
-    if (is_used !== undefined && is_used !== '') {
+    if (is_used === 'true' || is_used === 'false') {
       conditions.push(`c.is_used = $${i}`);
       values.push(is_used === 'true');
       i++;
     }
 
-    if (min_price) {
+    if (min_price !== undefined && min_price !== '') {
       conditions.push(`c.price >= $${i}`);
       values.push(Number(min_price));
       i++;
     }
 
-    if (max_price) {
+    if (max_price !== undefined && max_price !== '') {
       conditions.push(`c.price <= $${i}`);
       values.push(Number(max_price));
       i++;
     }
 
-    if (province_id) {
+    if (province_id !== undefined && province_id !== '') {
       conditions.push(`c.province_id = $${i}`);
-      values.push(province_id);
+      values.push(Number(province_id));
       i++;
     }
 
-    if (municipality_id) {
+    if (municipality_id !== undefined && municipality_id !== '') {
       conditions.push(`c.municipality_id = $${i}`);
-      values.push(municipality_id);
+      values.push(Number(municipality_id));
       i++;
     }
 
-    if (electric !== undefined && electric !== '') {
+    if (electric === 'true' || electric === 'false') {
       conditions.push(`c.is_electric = $${i}`);
       values.push(electric === 'true');
       i++;
@@ -98,7 +114,7 @@ const getCars = async (req, res) => {
          ${where}
          ORDER BY ${finalOrderBy}
          LIMIT $${i} OFFSET $${i + 1}`,
-        [...values, limit, offset]
+        [...values, currentLimit, offset]
       ),
     ]);
 
@@ -107,8 +123,8 @@ const getCars = async (req, res) => {
     res.json({
       cars: result.rows,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / limit),
+      page: currentPage,
+      pages: Math.ceil(total / currentLimit),
     });
   } catch (err) {
     console.error(err);

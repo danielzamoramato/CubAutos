@@ -43,10 +43,11 @@ export default function Header({ onSearch, filters, mode = 'sale' }) {
 
   const handleTextChange = (e) => {
     const value = e.target.value
-    setLocal(prev => ({ ...prev, q: value }))
+    const nextLocal = { ...local, q: value }
+    setLocal(nextLocal)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      onSearch({ ...local, q: value })
+      onSearch(nextLocal)
     }, 400)
   }
 
