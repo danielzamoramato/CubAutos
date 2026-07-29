@@ -236,7 +236,6 @@ const createCar = async (req, res) => {
       owner_name, owner_phone, is_electric, vehicle_type,
     } = req.body;
 
-    // Sanitizar campos numéricos opcionales
     const cleanYear = year === '' || year === undefined ? null : Number(year);
     const cleanKm = (is_used && km !== '' && km !== undefined) ? Number(km) : null;
 
@@ -246,15 +245,17 @@ const createCar = async (req, res) => {
       `INSERT INTO cars
          (brand_id, model, year, price, is_used, km, description,
           province_id, municipality_id, owner_name, owner_phone, is_electric, vehicle_type)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING id`,
-      [brand_id, model, cleanYear, price,
-       is_used ?? true,
-       cleanKm,
-       description, province_id, municipality_id,
-       owner_name, owner_phone,
-       is_electric ?? false,
-      vehicle_type || 'car']
+      [
+        brand_id, model, cleanYear, price,
+        is_used ?? true,
+        cleanKm,
+        description, province_id, municipality_id,
+        owner_name, owner_phone,
+        is_electric ?? false,
+        vehicle_type || 'car'
+      ]
     );
 
     const carId = result.rows[0].id;
