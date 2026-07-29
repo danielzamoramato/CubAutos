@@ -22,6 +22,7 @@ export default function CarForm({ token, car, onSaved }) {
   const [kmUnit, setKmUnit] = useState('km') // 'km' | 'mi'
 
   const [form, setForm] = useState({
+    vehicle_type: car?.vehicle_type || 'car',
     brand_id: car?.brand_id || '',
     model: car?.model || '',
     year: car?.year || '',
@@ -161,6 +162,25 @@ export default function CarForm({ token, car, onSaved }) {
       )}
 
       {/* Datos del vehículo */}
+      <div className="sm:col-span-2">
+  <label className={labelClass}>Tipo de vehículo *</label>
+  <div className="grid grid-cols-3 gap-2">
+    {[
+      { value: 'car', label: 'Carro' },
+      { value: 'moto', label: 'Moto' },
+      { value: 'motorina', label: 'Motorina' },
+    ].map(t => (
+      <button key={t.value} type="button" onClick={() => set('vehicle_type', t.value)}
+        className={`py-2.5 rounded-lg text-sm font-medium border transition-colors
+          ${form.vehicle_type === t.value
+            ? 'bg-slate-700 border-slate-700 text-white'
+            : 'border-slate-200 text-slate-500'}`}>
+        {t.label}
+      </button>
+    ))}
+  </div>
+</div>
+
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>

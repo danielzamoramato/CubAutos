@@ -15,6 +15,7 @@ const getCars = async (req, res) => {
       municipality_id,
       sort,
       electric,
+      vehicle_type,
       page = 1,
       limit = 12
     } = req.query;
@@ -74,6 +75,12 @@ const getCars = async (req, res) => {
       i++;
     }
 
+    if (vehicle_type) {
+      conditions.push(`c.vehicle_type = $${i}`);
+      values.push(vehicle_type);
+      i++;
+    }
+
     if (electric === 'true' || electric === 'false') {
       conditions.push(`c.is_electric = $${i}`);
       values.push(electric === 'true');
@@ -100,7 +107,7 @@ const getCars = async (req, res) => {
       pool.query(
         `SELECT
            c.id, c.model, c.year, c.price, c.is_used, c.km, c.is_electric,
-           c.is_featured, c.featured_until,
+           c.is_featured, c.featured_until, c.vehicle_type,
            c.owner_phone, c.created_at,
            b.name AS brand,
            p.name AS province,
@@ -226,7 +233,7 @@ const createCar = async (req, res) => {
     const {
       brand_id, model, year, price, is_used, km,
       description, province_id, municipality_id,
-      owner_name, owner_phone, is_electric,
+      owner_name, owner_phone, is_electric, vehicle_type,
     } = req.body;
 
     // Sanitizar campos numéricos opcionales
@@ -238,7 +245,7 @@ const createCar = async (req, res) => {
     const result = await client.query(
       `INSERT INTO cars
          (brand_id, model, year, price, is_used, km, description,
-          province_id, municipality_id, owner_name, owner_phone, is_electric)
+          province_id, municipality_id, owner_name, owner_phone, is_electric, vehicle_type)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING id`,
       [brand_id, model, cleanYear, price,
@@ -246,7 +253,8 @@ const createCar = async (req, res) => {
        cleanKm,
        description, province_id, municipality_id,
        owner_name, owner_phone,
-       is_electric ?? false]
+       is_electric ?? false,
+      vehicle_type || 'car']
     );
 
     const carId = result.rows[0].id;
@@ -281,7 +289,7 @@ const updateCar = async (req, res) => {
     const {
       brand_id, model, year, price, is_used, km,
       description, province_id, municipality_id,
-      owner_name, owner_phone, is_active, is_electric,
+      owner_name, owner_phone, is_active, is_electric, vehicle_type,
     } = req.body;
 
     const cleanYear = year === '' || year === undefined ? null : Number(year);
@@ -293,8 +301,8 @@ const updateCar = async (req, res) => {
          is_used=$5, km=$6, description=$7,
          province_id=$8, municipality_id=$9,
          owner_name=$10, owner_phone=$11,
-         is_active=$12, is_electric=$13
-       WHERE id=$14`,
+         is_active=$12, is_electric=$13, vehicle_type=$14
+       WHERE id=$15`,
       [brand_id, model, cleanYear, price,
        is_used, cleanKm,
        description, province_id, municipality_id,

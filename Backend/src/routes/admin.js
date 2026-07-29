@@ -25,7 +25,7 @@ router.get('/cars', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT c.id, c.model, c.year, c.price, c.is_used, c.is_active, c.views,
-              c.is_featured, c.featured_until,
+              c.is_featured, c.featured_until, c.vehicle_type,
               b.name AS brand, p.name AS province
        FROM cars c
        LEFT JOIN brands b ON b.id = c.brand_id

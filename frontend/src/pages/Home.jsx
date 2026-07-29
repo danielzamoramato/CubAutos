@@ -4,6 +4,12 @@ import CarGrid from '../components/CarGrid'
 import { getCars } from '../lib/api'
 import AdSlot from '../components/AdSlot'
 
+const VEHICLE_TABS = [
+  { value: 'car', label: 'Carros' },
+  { value: 'moto', label: 'Motos' },
+  { value: 'motorina', label: 'Motorinas' },
+]
+
 export default function Home() {
   const [cars, setCars] = useState([])
   const [loading, setLoading] = useState(true)
@@ -11,15 +17,16 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [sort, setSort] = useState('recent')
+  const [vehicleType, setVehicleType] = useState('car')
   const [filters, setFilters] = useState({
     q: '', brand_id: '', is_used: '', min_price: '', max_price: '',
     province_id: '', municipality_id: '', electric: ''
   })
 
-  const fetchCars = useCallback(async (activeFilters, activePage, activeSort) => {
+  const fetchCars = useCallback(async (activeFilters, activePage, activeSort, activeType) => {
     setLoading(true)
     try {
-      const params = { ...activeFilters, page: activePage, sort: activeSort }
+      const params = { ...activeFilters, vehicle_type: activeType, page: activePage, sort: activeSort }
       const { data } = await getCars(params)
       setCars(data.cars ?? [])
       setTotalPages(data.pages ?? 1)
@@ -32,11 +39,16 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    fetchCars(filters, page, sort)
-  }, [filters, page, sort, fetchCars])
+    fetchCars(filters, page, sort, vehicleType)
+  }, [filters, page, sort, vehicleType, fetchCars])
 
   const handleSearch = (newFilters) => {
     setFilters(newFilters)
+    setPage(1)
+  }
+
+  const handleTabChange = (type) => {
+    setVehicleType(type)
     setPage(1)
   }
 
@@ -49,6 +61,23 @@ export default function Home() {
     <div className="min-h-screen bg-slate-100">
       <Header onSearch={handleSearch} filters={filters} />
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
+
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-4">
+          <div className="flex gap-2">
+            {VEHICLE_TABS.map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => handleTabChange(tab.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${vehicleType === tab.value
+                    ? 'bg-slate-700 text-white'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="mb-5">
           <AdSlot placement="home_top" />
