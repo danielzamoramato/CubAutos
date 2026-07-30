@@ -304,11 +304,16 @@ const updateCar = async (req, res) => {
          owner_name=$10, owner_phone=$11,
          is_active=$12, is_electric=$13, vehicle_type=$14
        WHERE id=$15`,
-      [brand_id, model, cleanYear, price,
-       is_used, cleanKm,
-       description, province_id, municipality_id,
-       owner_name, owner_phone,
-       is_active ?? true, is_electric ?? false, id]
+      [
+        brand_id, model, cleanYear, price,
+        is_used, cleanKm,
+        description, province_id, municipality_id,
+        owner_name, owner_phone,
+        is_active ?? true,
+        is_electric ?? false,
+        vehicle_type || 'car',
+        id
+      ]
     );
 
     res.json({ message: 'Carro actualizado' });

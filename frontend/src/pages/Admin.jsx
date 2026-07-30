@@ -11,6 +11,7 @@ import RentalForm from '../components/RentalForm'
 import AdForm from '../components/AdForm'
 import { setCarFeatured, setRentalFeatured } from '../lib/api'
 import FeaturedModal from '../components/FeaturedModal'
+import { getCarById, getRentalById } from '../lib/api'
 
 const TOKEN_KEY = 'cubautos_token'
 
@@ -128,11 +129,31 @@ export default function Admin() {
     setView('create')
   }
 
-  const startEdit = (item, type) => {
+  const startEdit = async (item, type) => {
+  if (type === 'sale') {
+    try {
+      const { data } = await getCarById(item.id)
+      setEditing(data)
+      setFormType('sale')
+      setView('edit')
+    } catch {
+      setError('Error al cargar el carro')
+    }
+  } else if (type === 'rental') {
+    try {
+      const { data } = await getRentalById(item.id)
+      setEditing(data)
+      setFormType('rental')
+      setView('edit')
+    } catch {
+      setError('Error al cargar el carro de renta')
+    }
+  } else {
     setEditing(item)
     setFormType(type)
     setView('edit')
   }
+}
 
   const handleSetFeatured = async (featured_until) => {
     try {
