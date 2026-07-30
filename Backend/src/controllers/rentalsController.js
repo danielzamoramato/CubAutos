@@ -133,6 +133,13 @@ const createRental = async (req, res) => {
       description, province_id, municipality_id,
       owner_name, owner_phone,
     } = req.body;
+    // Normalizar valores: convertir cadenas vacías a null y asegurar tipos numéricos
+    const cleanYear = year === '' || year === undefined ? null : Number(year);
+    const cleanPrice = price_per_day === '' || price_per_day === undefined ? null : Number(price_per_day);
+    const cleanSeats = seats === '' || seats === undefined ? null : Number(seats);
+    const cleanProvince = province_id === '' || province_id === undefined ? null : Number(province_id);
+    const cleanMunicipality = municipality_id === '' || municipality_id === undefined ? null : Number(municipality_id);
+    const cleanBrand = brand_id === '' || brand_id === undefined ? null : Number(brand_id);
 
     await client.query('BEGIN');
 
@@ -142,9 +149,9 @@ const createRental = async (req, res) => {
           province_id, municipality_id, owner_name, owner_phone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING id`,
-      [brand_id, model, year, price_per_day,
-       transmission || 'manual', seats || null,
-       description, province_id, municipality_id,
+      [cleanBrand, model, cleanYear, cleanPrice,
+       transmission || 'manual', cleanSeats,
+       description, cleanProvince, cleanMunicipality,
        owner_name, owner_phone]
     );
 
@@ -182,6 +189,13 @@ const updateRental = async (req, res) => {
       description, province_id, municipality_id,
       owner_name, owner_phone, is_active,
     } = req.body;
+    // Normalizar valores: convertir cadenas vacías a null y asegurar tipos numéricos
+    const cleanYear = year === '' || year === undefined ? null : Number(year);
+    const cleanPrice = price_per_day === '' || price_per_day === undefined ? null : Number(price_per_day);
+    const cleanSeats = seats === '' || seats === undefined ? null : Number(seats);
+    const cleanProvince = province_id === '' || province_id === undefined ? null : Number(province_id);
+    const cleanMunicipality = municipality_id === '' || municipality_id === undefined ? null : Number(municipality_id);
+    const cleanBrand = brand_id === '' || brand_id === undefined ? null : Number(brand_id);
 
     await pool.query(
       `UPDATE rentals SET
@@ -191,9 +205,9 @@ const updateRental = async (req, res) => {
          owner_name=$10, owner_phone=$11,
          is_active=$12
        WHERE id=$13`,
-      [brand_id, model, year, price_per_day,
-       transmission || 'manual', seats || null,
-       description, province_id, municipality_id,
+      [cleanBrand, model, cleanYear, cleanPrice,
+       transmission || 'manual', cleanSeats,
+       description, cleanProvince, cleanMunicipality,
        owner_name, owner_phone,
        is_active ?? true, id]
     );
